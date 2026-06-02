@@ -42,7 +42,7 @@ Returns a fallback string (not an error) when `retrieved_chunks` is empty.
 *How will you format the retrieved chunks before passing them to the LLM? Describe the structure — not the code. Consider: will you label chunks by game? Include distance scores? Separate chunks with delimiters?*
 
 ```
-[your answer here]
+I would not just pass all retrieved chunks as plain text because the model could mix information from different games together. Instead, I would structure the context so that each chunk is clearly separated and labeled with metadata such as the game name, source file, chunk ID, and similarity score. The chunks would be ordered from highest similarity to lowest similarity, and separated using clear delimiters so the model can distinguish between different sources more easily. I would also wrap all retrieved chunks inside a dedicated CONTEXT section to clearly separate retrieved information from the user query and system prompt. Including metadata and delimiters is supported by RAG research because it helps reduce source mixing, improves grounding, and makes citations/debugging easier. I would include similarity scores mostly as metadata for transparency and ranking, but not rely on the model to reason heavily from the score itself.
 ```
 
 ---
@@ -52,7 +52,16 @@ Returns a fallback string (not an error) when `retrieved_chunks` is empty.
 *Write the exact system prompt instruction you will use to prevent the model from answering beyond the retrieved text. This is the most important design decision in this function.*
 
 ```
-[your answer here]
+You are a grounded question-answering system. Answer the user’s question using ONLY the retrieved context provided below. Every factual statement in the response must be directly supported by at least one retrieved chunk. Do not use outside knowledge, prior training data, assumptions, or inferred information, even if the answer seems obvious or familiar. If the answer cannot be found explicitly in the retrieved context, respond exactly with: "The provided documents do not contain enough information to answer this question."
+
+When answering:
+- Use only information present in the retrieved chunks.
+- Do not generalize or add background explanations not stated in the context.
+- Do not merge rules or facts across unrelated games unless the retrieved text explicitly connects them.
+- Cite the relevant source document or chunk ID for each major claim.
+- Prefer quoting or closely paraphrasing retrieved text rather than rewriting from memory.
+
+The retrieved context will appear between CONTEXT START and CONTEXT END.
 ```
 
 ---
