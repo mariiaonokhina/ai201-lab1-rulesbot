@@ -95,9 +95,6 @@ def retrieve(query, n_results=N_RESULTS):
         for text, meta, dist in zip(documents, metadatas, distances)
     ]
 
-    for chunk in chunks:
-        print(f"[{chunk['game']}] (dist: {chunk['distance']:.3f}) {chunk['text'][:80]}...")
-
     # Hybrid filter: keep only chunks within the relevance threshold.
     relevant = [c for c in chunks if c["distance"] <= DISTANCE_THRESHOLD]
 
