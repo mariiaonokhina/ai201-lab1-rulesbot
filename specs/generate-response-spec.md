@@ -113,14 +113,14 @@ The retrieved context will appear between CONTEXT START and CONTEXT END.
 **Test query and response:**
 
 ```
-Query: [your test query]
-Response: [abbreviated response]
-Correctly grounded? [yes / no]
-Cited the right game? [yes / no]
+Query: What happens when you roll a 7?
+Response: When a 7 is rolled, no resources are produced. Additionally, every player with more than 7 resource cards in hand must discard half (rounded down), and the player who rolled moves the robber to any terrain hex and steals one resource (Catan).
+Correctly grounded? yes
+Cited the right game? yes
 ```
 
 **One thing you changed from your original spec after seeing the actual output:**
 
 ```
-[your answer here]
+It was returning chunk IDs, so I made it return the actual game names it took the chunks from.
 ```
