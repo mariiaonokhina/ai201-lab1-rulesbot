@@ -116,11 +116,11 @@ handle these cases better, at the cost of more implementation complexity.
 **Actual chunk count produced across all 8 rule books:**
 
 ```
-[your answer here]
+149
 ```
 
 **One thing that surprised you or didn't match your expectations:**
 
 ```
-[your answer here]
+I thought that 300 character chunks with 50 character overlap would produce more chunks for 8 rule books. Turns out that it's actually around 18 chunks per rule book, which matches the approximate number of sentences in each.
 ```
