@@ -45,7 +45,15 @@ Results should be ordered from most to least relevant (lowest to highest distanc
 *Describe how you will use `_collection.query()` to find relevant chunks. What arguments will you pass, and why?*
 
 ```
-[your answer here]
+`_collection.query()` accepts `query_texts` (question(s) to search with), `n_results` (number of closest chunks to return for the query), and `include` (specifies which fields to return). We must specify to include what documents the suggestions came from as well as the metadatas to make sure that the RulesBot is answering about the correct game. Also, we need to make sure to include the distances to see which suggestions are the closest and how close they are.
+
+So, an example usage of this function would be:
+
+results = _collection.query(
+    query_texts=["What happens when you complete a lap in Monopoly?"],
+    n_results=3,
+    include=["documents", "metadatas", "distances"]
+)
 ```
 
 ---
@@ -55,7 +63,32 @@ Results should be ordered from most to least relevant (lowest to highest distanc
 *Sketch out what one item in your return list looks like as a concrete example. Where does each field come from in the query results?*
 
 ```
-[your answer here]
+`_collection.query()` returns a dictionary, where every value is a list of lists. For example:
+
+{
+    "ids": [
+        ["monopoly_1", "monopoly_5", "monopoly_9"]
+    ],
+    "documents": [
+        [
+            "When you pass "Go", .......",
+            "The player who completes a lap must ........", 
+            "The goal of this game is to get as much money as possible while buying properties and collecting money for passing "Go".
+        ]
+    ],
+    "metadatas": [
+        [
+            {"game": "Monopoly"},
+            {"game": "Monopoly"},
+            {"game": "Monopoly"}
+        ]
+    ],
+    "distances": [
+        [0.18, 0.31, 0.42]
+    ]
+}
+
+The "ids" come from the game name as well as chunk ids. The "documents" are the actual chunks found to be most similar to the query. The "metadatas" are the games that the chunks come from. The "distances" are how close the embeddings are to the query in the embedding space.
 ```
 
 ---
@@ -65,7 +98,13 @@ Results should be ordered from most to least relevant (lowest to highest distanc
 *`_collection.query()` returns nested lists. Describe what index you need to access to get the actual list of results for a single query, and why the nesting exists.*
 
 ```
-[your answer here]
+results["documents"] returns top-k chunks that are similar to the query.
+
+results["documents"][0] returns the query's actual results, which is what we need (the "documents" field).
+
+results["documents"][0][1] returns the 2nd best chunk. 
+
+The nesting exists to handle multiple queries in a single call.
 ```
 
 ---
@@ -75,7 +114,9 @@ Results should be ordered from most to least relevant (lowest to highest distanc
 *Will you filter out results above a certain distance score, or return all `n_results` regardless of how relevant they are? What are the tradeoffs of each approach?*
 
 ```
-[your answer here]
+If we filter out results above a certain distance score, we risk losing important results or even return none of them because the closest results were above the threshold. If we return all `n_results`, it will slow the app down because there could potentially be hundreds of similar results and also there will be more noise from irrelevant chunks, which leads to worse RAG answers and higher token cost.
+
+I would combine both approaches by retrieving a specific number of chunks only that are above a specific threshold.
 ```
 
 ---
@@ -85,7 +126,9 @@ Results should be ordered from most to least relevant (lowest to highest distanc
 *How does your implementation behave when: (a) the collection is empty, (b) the query matches no chunks well, (c) the query matches chunks from multiple games?*
 
 ```
-[your answer here]
+(a) When the collection is empty, it will return nothing, so it needs a fallback.
+(b) If the query matches no chunks well, it might return a wrong result if we set the threshold too high, or it might return nothing, so we need a fallback.
+(c) If the query matches chunks from multiple games, the retriever may return a mixture of relevant chunks from different sources. In this case, reranking, metadata filtering, or grouping results by game can help improve relevance and reduce confusion in the final RAG response.
 ```
 
 ---
@@ -97,14 +140,14 @@ Results should be ordered from most to least relevant (lowest to highest distanc
 **Test query and top result returned:**
 
 ```
-Query: [your test query]
-Top result game: [game name]
-Distance score: [score]
-Does it make sense? [yes / no / explain]
+Query: What is a Wild Draw Four and when can you play it in Uno?
+Top result game: Uno
+Distance score: 0.354
+Does it make sense? yes, it says for the next player to draw 4 cards and lose their turn.
 ```
 
 **One thing about the query results that surprised you:**
 
 ```
-[your answer here]
+They are not ordered and also the distance scores are pretty high.
 ```

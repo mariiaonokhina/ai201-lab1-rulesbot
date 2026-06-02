@@ -2,6 +2,13 @@ import chromadb
 from chromadb.utils import embedding_functions
 from config import CHROMA_COLLECTION, CHROMA_PATH, EMBEDDING_MODEL, N_RESULTS
 
+# Cosine distance cutoff: chunks farther than this are treated as irrelevant.
+# 0 = identical, 2 = opposite. ~0.5 is a reasonable starting point for
+# all-MiniLM-L6-v2; tune by watching the real distances your queries return.
+# If every result is above the cutoff, retrieve() falls back to the single
+# best match so the bot is never left with no context at all.
+DISTANCE_THRESHOLD = 0.5
+
 # Embedding function and ChromaDB client are initialized once at module load.
 # sentence-transformers downloads the model on first use — this may take
 # 30–60 seconds the very first time. Subsequent runs use a local cache.
@@ -68,5 +75,35 @@ def retrieve(query, n_results=N_RESULTS):
     if _collection.count() == 0:
         return []
 
-    # Your implementation here.
-    return []
+    # Semantic search. query_texts is a list (Chroma supports batching), so the
+    # results come back nested one level per query — we index [0] to unwrap our
+    # single query's matches.
+    results = _collection.query(
+        query_texts=[query],
+        n_results=n_results,
+        include=["documents", "metadatas", "distances"],
+    )
+
+    documents = results["documents"][0]
+    metadatas = results["metadatas"][0]
+    distances = results["distances"][0]
+
+    # The three lists are parallel: index i describes the same chunk in each.
+    # Distances are sorted ascending, so documents[0] is the closest match.
+    chunks = [
+        {"text": text, "game": meta["game"], "distance": dist}
+        for text, meta, dist in zip(documents, metadatas, distances)
+    ]
+
+    for chunk in chunks:
+        print(f"[{chunk['game']}] (dist: {chunk['distance']:.3f}) {chunk['text'][:80]}...")
+
+    # Hybrid filter: keep only chunks within the relevance threshold.
+    relevant = [c for c in chunks if c["distance"] <= DISTANCE_THRESHOLD]
+
+    # Fallback: if nothing cleared the threshold, return the single best chunk
+    # rather than nothing, so the LLM still has some context to work from.
+    if not relevant and chunks:
+        return chunks[:1]
+
+    return relevant
